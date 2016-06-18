@@ -7,6 +7,10 @@
      * Event listeners in modal view
      */
 
+    Number.prototype.toHM = function () {
+        return Math.floor(this/60) + "時" + this%60 + "分";
+    }
+
     var initWorktimeModalView = function(worktime) {
         // selectors
         var $st = $('#wtm-startTime');
@@ -26,10 +30,11 @@
             var wtdiff = etm.diff(stm, "minutes");
 
             // FIXME
-            $wt.html(wtdiff/60 + "時" + wtdiff%60 + "分");
+            $wt.html(Math.floor(wtdiff/60) + "時" + wtdiff%60 + "分");
             $rt.html(ft + "時");
             var totalTimeInMinutes = wtdiff - ft * 60;
-            $tt.html(totalTimeInMinutes/60 + "時" + totalTimeInMinutes%60 + "分");
+            //$tt.html(Math.floor(totalTimeInMinutes/60) + "時" + totalTimeInMinutes%60 + "分");
+            $tt.html(totalTimeInMinutes.toHM());
         };
         $st.val(worktime.startTime).change(function(){
             changeResult();
@@ -44,14 +49,12 @@
         changeResult();
     };
 
-    $('#test-modal').on('shown.bs.modal', function() {
-        var defaultWorktime = {
-            'startTime':'08:00',
-            'endTime':'17:00',
-            'freeTime': '1'
-        };
+    $('#test-modal').on('shown.bs.modal', function(event) {
+        var data = event.relatedTarget;
 
-        initWorktimeModalView(defaultWorktime);
+        console.log(data);
+
+        initWorktimeModalView(data);
     });
 
     var workTimes = [];
@@ -67,13 +70,13 @@
                 weekDay: weekDay,
                 startTime: '08:10',
                 endTime: '17:30',
-                freeTime: '1:00',
+                freeTime: '1',
             };
 
             workTimes.push(data);
 
             me.on('click', function(e) {
-                $('#test-modal').modal('show', weekDay);
+                $('#test-modal').modal('show', data);
             });
         
             me.on('gj.changed', function() {
