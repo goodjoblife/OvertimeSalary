@@ -55,6 +55,19 @@
         console.log(data);
 
         initWorktimeModalView(data);
+        
+        $("#test-modal-button").on('click', function () {
+            $("#test-modal-button").off('click');
+            
+            $('#test-modal').on('hidden.bs.modal', function (event) {
+                $('#test-modal').off('hidden.bs.modal');
+
+                data.obj.trigger('gj.changed');
+            });
+
+            $('#test-modal').modal('hide');
+        });
+        
     });
 
     var workTimes = [];
@@ -80,6 +93,8 @@
             });
         
             me.on('gj.changed', function() {
+                console.log("gj.changed");
+
                 me.find(".start").html(data.startTime);
                 me.find(".end").text(data.endTime);
                 me.find(".break").text(data.freeTime);
@@ -88,13 +103,6 @@
             me.trigger('gj.changed');
         });
 
-        $('#test-modal').on('hidden.bs.modal', function (event) {
-            var data = event.relatedTarget;
-
-            console.log(data);
-
-            data.obj.trigger('gj.changed');
-        });
     };
 
 })(window, jQuery);
