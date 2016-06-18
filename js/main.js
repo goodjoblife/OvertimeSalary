@@ -22,17 +22,43 @@
         initWorktimeModalView(defaultWorktime);
     });
 
+    var workTimes = [];
     /*
      * A place to prepare our checker
      */
     var init = global.init = function() {
-        //$('#test-modal').modal('show');
+
+        [1, 2, 3, 4, 5, 6, 7].forEach(function(weekDay) {
+            var me = $("#weekday-" + weekDay);
+            var data = {
+                obj: me,
+                weekDay: weekDay,
+                startTime: '08:10',
+                endTime: '17:30',
+                freeTime: '1:00',
+            };
+
+            workTimes.push(data);
+
+            me.on('click', function(e) {
+                $('#test-modal').modal('show', weekDay);
+            });
         
-        
-        [1, 2, 3, 4, 5, 6, 7].forEach(function(item) {
-            $("#weekday-" + item).on('click', function(e) {
-                console.log(item);
-            })
+            me.on('gj.changed', function() {
+                me.find(".start").html(data.startTime);
+                me.find(".end").text(data.endTime);
+                me.find(".break").text(data.freeTime);
+            });
+
+            me.trigger('gj.changed');
+        });
+
+        $('#test-modal').on('hidden.bs.modal', function (event) {
+            var data = event.relatedTarget;
+
+            console.log(data);
+
+            data.obj.trigger('gj.changed');
         });
     };
 
