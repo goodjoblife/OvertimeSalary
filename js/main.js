@@ -103,6 +103,8 @@
             me.trigger('gj.changed');
         });
 
+        $("#weekday-1").click();
+
     };
 
 })(window, jQuery);
