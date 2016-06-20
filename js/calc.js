@@ -1,12 +1,33 @@
 
 /*
 	This file contains the functions for calculating bonus salary
+
+	Names:
+		Routine Day Off: 例假日
+		National Holiday: 國定假日
+		Special Day Off: 特別休假日
 */
+
+//rule 30.1 
+const var normalDayTime = moment.duration(8, 'hours');
+const var normalWeekTime = moment.duration(40, 'hours');
 
 
 //FIXME: check whether it is really month salary / 240
 function calcHourSalary(monthSalary){
 	return monthSalary / 240; 
+}
+
+
+function calcWorkingTime(startTime, endTime, breakDuration){
+	if(__checkTimeFormat(startTime, endTime, breakDuration) == false){
+		return;
+	}
+	if(startTime == null && endTime == null){
+		return 0;
+	}
+	var workingTime = endTime.diff(startTime) - breakDuration;
+	return workingTime; 
 }
 
 /*
@@ -17,17 +38,14 @@ function calcHourSalary(monthSalary){
 	return value: extended time in seconds 
 */
 //FIXME: we assume the beginning time and ending time of working are on same day
-function calcExtendedTime_OneDay(startTime, endTime, breakDuration){
-	if(startTime)
-	if(endTime.isBefore(startTime)){
-		throw "Time interval error: endTime is before startTime";
-	}
-	var workingTime = endTime.diff(startTime) - breakDuration;
-	var normalTime = moment.duration(8, 'hours');
-	var extendedTime = workingTime - normalTime; 
-	if(extendedTime < 0) {
-		extendedTime = 0; 
-	}
+function calcExtendedTime(startTime, endTime, breakDuration){
+	workingTime = calcWorkingTime(startTime, endTime, breakDuration);
+	var extendedTime = (workingTime > normalDayTime) ? (workingTime - normalDayTime) : 0 ; 
+	return extendedTime; 
+}
+
+function calcExtendedTimeByWorkingTime(workingTime){
+	var extendedTime = (workingTime > normalDayTime) ? (workingTime - normalDayTime) : 0 ; 
 	return extendedTime; 
 }
 
@@ -36,27 +54,115 @@ function calcExtendedTime_OneDay(startTime, endTime, breakDuration){
 	considering changed working hours rules
 	
 	startTime, endTime are moment object, breakDuration is number (seconds)
-	return value: extended time in seconds 
+	routineDayOffDay defaults to Sunday
+	return value: an array of extended time for each day (in seconds)  
 */
 //FIXME: we assume the beginning time and ending time of working are on same day
 function calcExtendedTime_OneWeek(startTimeArr, endTimeArr, breakDurationArr){
 	if((startTimeArr.length != endTimeArr.length) || (endTimeArr.length != breakDuration.length)){
-		throw "Input Error: length of array are not consistent";
+		throw "InputError: length of array are not consistent";
 	}
 	if(startTimeArr.length != 7){
-		throw "Input Error: should be 7 days";
+		throw "InputError: should be 7 days";
 	}
+
 	var nDays = 7;
 	for(var i = 0; i < nDays; i++){
-		if(endTimeArr[i].isBefore(startTimeArr[i])){
-			throw "Time interval error: endTime is before startTime";
+		if(__checkTimeFormat(startTimeArr[i], endTimeArr[i], breakDurationArr[i]) == false){
+			return;
 		}
 	}
 
+	var workingTimeArr = new Array(7);
+	var extendedTimeArr = new Array(7);
+	var weekWorkingTime = 0;
+
+	//calculate working time and extended working time for each day
 	for(var i = 0; i < nDays; i++){
+		var s = startTimeArr[i];
+		var e = endTimeArr[i];
+		var b = breakDurationArr[i];
+		var day = s.day();
+		workingTimeArr[i] = calcWorkingTime(startTimeArr[i], endTimeArr[i], breakDurationArr[i]);
+		weekWorkingTime += workingTimeArr[i];
+		extendedTimeArr[i] = calcExtendedTimeByWorkingTime(workingTimeArr[i]);
 
 	}
 
+	//calculate extended working time for this week 
+	weekExtendedTime = (weekWorkingTime > normaWeekTime) ? (weekWorkingTime - normalWeekTime) : 0; 
+	__distributeWeekExtendedTime(weekExtendedTime, workingTimeArr, extendedTimeArr);
+
+	return extendedTimeArr;
 }
 
-function __checkTimeFormat(startTime, endTime, breakDuration)
+function __distributeWeekExtendedTime(weekExtendedTime, workingTimeArr, extendedTimeArr, dateArray, order=[6, 0, 5, 4, 3, 2, 1]){
+	var nDays = 7;
+	if(weekExtendedTime > 0){
+		for(var i = 0; i < nDays; i++){
+			weekExtendedTime -= extendedTimeArr[i]; 
+		}
+		if(weekExtendedTime < 0){  //all week extended time are day extended time
+			return; 
+		}
+		else{ //some of week extended time are not day extended time, we need to re-define day extended time
+			//generate day to array index mapping
+			var mapping = new Array(nDays);
+			for(var i=0; i< nDays; i++){
+				mapping[dateArr[i].day()] = i;
+			}
+			//distributing by the given order
+			for(var i=0; i < nDays; i++){
+				var day = order[i];
+				var index = mapping[day];
+				if(weekExtendedTime > workingTimeArr[index]){
+					weekExtendedTime -= workingTimeArr[index];
+					extendedTimeArr[index] += workingTimeArr[index];
+				}
+				else{
+					extendedTimeArr[index] += weekExtendedTime;
+					weekExtendedTime = 0; 
+					break;
+				}
+			}
+		}
+	}
+	else{
+		return;
+	}
+	
+}
+
+function __checkTimeFormat(startTime, endTime, breakDuration){
+	if(startTime == null){
+		if(endTime == null){
+			return true; 
+		}
+		else{
+			throw "TimeIntervalError: startTime is null but endTime is NOT null";
+			return false;
+		}
+	}
+	else{
+		if(endTime == null){
+			throw "TimeIntervalError: startTime is NOT null but endTime is null";	
+			return false;
+		}
+		else{
+			if(typeof(startTime) == "moment" && typeof(endTime) == "moment" && typeof(breakDuration) == "number"){
+				if(endTime.isBefore(startTime)){
+					throw "TimeIntervalError: endTime is before startTime";	
+					return false;
+				}
+				else{
+					return true;
+				}
+			}
+			else{
+				throw "InputTypeError: input type is not correct";
+				return false;
+			}
+		}
+	}
+}
+
