@@ -1,4 +1,4 @@
-(function(global, $, moment, checker) {
+(function(exports, $, moment, checker) {
     function workingTime() {
         this.startTime = moment('08:00', 'HH:mm');
         this.endTime = moment('17:00', 'HH:mm');
@@ -6,9 +6,25 @@
         this.isBreak = false;
     }
 
-    var workingTimes = [];
+    var workingTimes = exports.workingTimes = [];
     for (var i = 0; i < 7; i++) {
         workingTimes.push(new workingTime);
+    }
+
+    var callbacks = {};
+    exports.on = function(type, callback) {
+        if (!(type in callbacks)) {
+            callbacks[type] = [];
+        }
+        callbacks[type].push(callback);
+    }
+    exports.emit = function(type, data) {
+        if (!(type in callbacks)) {
+            return;
+        }
+        callbacks[type].forEach(function(callback) {
+            callback.call(exports, data);
+        });
     }
 
     Number.prototype.toHM = function() {
@@ -83,7 +99,9 @@
             }
 
             $('#test-modal').modal('hide');
-            onWorkingTimeUpdated(weekDay);
+
+            exports.emit("WorkingTimeChanged", weekDay);
+            exports.emit("WorkingTimesChanged", workingTimes);
         });
 
         $('#test-modal').on('show.bs.modal', function (event) {
@@ -119,11 +137,15 @@
                 $('#test-modal').modal('show', weekDay);
             });
 
-            onWorkingTimeUpdated(weekDay);
+            drawWorkingTime(weekDay);
         });
     }
 
-    function onWorkingTimeUpdated(weekDay) {
+    exports.on("WorkingTimeChanged", function(weekDay) {
+        drawWorkingTime(weekDay);
+    });
+
+    function drawWorkingTime(weekDay) {
         var workingTime = workingTimes[weekDay];
 
         // Update Table
@@ -143,15 +165,22 @@
     /*
      * A place to prepare our checker
      */
-    var init = global.init = function(callback) {
+    var init = exports.init = function(callback) {
         initTable();
         initModal();
 
         callback && callback();
     };
 
-})(window, jQuery, moment);
+})(window.workingTimesForm = window.workingTimesForm || {}, jQuery, moment);
 
-window.init(function () {
+workingTimesForm.on("WorkingTimeChanged", function(weekDay) {
+    console.log("onWorkingTimeChanged: " + weekDay);
+});
+workingTimesForm.on("WorkingTimesChanged", function(workingTimes) {
+    console.log(workingTimes);
+});
+
+window.workingTimesForm.init(function () {
     $("#weekday-1").click();
 });
