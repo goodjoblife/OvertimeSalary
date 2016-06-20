@@ -1,7 +1,14 @@
-(function(global, $) {
-    var rules = global.rules = {
+(function(global, $, checker) {
+    function workingTime() {
+        this.startTime = "08:00";
+        this.endTime = "16:00";
+        this.freeTime = 1;
+    }
 
-    };
+    var workingTimes = [];
+    for (var i = 0; i < 7; i++) {
+        workingTimes.push(new workingTime);
+    }
 
     // sharing the data with modal and table
     // make sure the event is bind via bindShownEvent, bindHiddenEvent
@@ -17,6 +24,10 @@
             var data = shared;
             hidden(data);
         });
+    }
+    function showModal(data) {
+        shared = data;
+        $('#test-modal').modal('show');
     }
 
     Number.prototype.toHM = function() {
@@ -41,6 +52,8 @@
         $ft.change(function () {
             changeResult();
         });
+
+        var workingTime;
         
         function changeResult() {
             console.log("Need re calculate");
@@ -57,16 +70,20 @@
         };
 
         $("#test-modal-button").on('click', function () {
+            workingTime.startTime = $st.val();
+            workingTime.endTime = $et.val();
+            workingTime.freeTime = $ft.val();
+
             $('#test-modal').modal('hide');
         });
 
         bindShownEvent(function (data) {
-            var worktime = data;
+            workingTime = data.workingTime;
 
             // initial all value
-            $st.val(worktime.startTime);
-            $et.val(worktime.endTime);
-            $ft.val(worktime.freeTime);
+            $st.val(workingTime.startTime);
+            $et.val(workingTime.endTime);
+            $ft.val(workingTime.freeTime);
 
             changeResult();
         });
@@ -75,33 +92,32 @@
     // init the Table, run once
     function initTable() {
         bindHiddenEvent(function(data) {
-            data.obj.trigger('view.update');
+            onWorkingTimeUpdated(data.weekDay, data.workingTime);
         });
 
         [1, 2, 3, 4, 5, 6, 7].forEach(function(weekDay) {
             var me = $("#weekday-" + weekDay);
+            var workingTime = workingTimes[weekDay - 1];
             var data = {
                 obj: me,
                 weekDay: weekDay,
-                startTime: '08:10',
-                endTime: '17:30',
-                freeTime: '1',
+                workingTime: workingTime,
             };
 
             me.on('click', function () {
-                // update the shared data
-                shared = data;
-                $('#test-modal').modal('show');
-            });
-        
-            me.on('view.update', function() {
-                me.find(".start").html(data.startTime);
-                me.find(".end").text(data.endTime);
-                me.find(".break").text(data.freeTime);
+                showModal(data);
             });
 
-            me.trigger('view.update');
+            onWorkingTimeUpdated(weekDay, workingTime);
         });
+    }
+
+    function onWorkingTimeUpdated(weekDay, workingTime) {
+        // Update Table
+        var me = $("#weekday-" + weekDay);
+        me.find(".start").html(workingTime.startTime);
+        me.find(".end").html(workingTime.endTime);
+        me.find(".break").html(workingTime.freeTime);
     }
 
     /*
