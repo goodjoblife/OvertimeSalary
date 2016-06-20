@@ -177,10 +177,14 @@
 workingTimesForm.on("WorkingTimeChanged", function(weekDay) {
     console.log("onWorkingTimeChanged: " + weekDay);
 });
-workingTimesForm.on("WorkingTimesChanged", function(workingTimes) {
-    console.log(workingTimes);
-});
 
 window.workingTimesForm.init(function () {
     $("#weekday-1").click();
+
+    workingTimesForm.on("WorkingTimesChanged", function(workingTimes) {
+        $.each(workingTimes, function(i, workingTime) {
+            var weekDay = i + 1;
+            $("#weekday-" + weekDay).find(".workingTime").text(calcWorkingTime(workingTime.startTime, workingTime.endTime, workingTime.freeTime));
+        });
+    });
 });
