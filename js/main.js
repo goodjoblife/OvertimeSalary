@@ -85,6 +85,8 @@
             $et.val(workingTime.endTime);
             $ft.val(workingTime.freeTime);
 
+            $("#myModalWeekDaySpan").html(["一", "二", "三", "四", "五", "六", "日"][data.weekDay]);
+
             changeResult();
         });
     }
