@@ -1,7 +1,7 @@
-(function(global, $, checker) {
+(function(global, $, moment, checker) {
     function workingTime() {
-        this.startTime = "08:00";
-        this.endTime = "16:00";
+        this.startTime = moment('08:00', 'HH:mm');
+        this.endTime = moment('17:00', 'HH:mm');
         this.freeTime = 1;
         this.isBreak = false;
     }
@@ -10,10 +10,6 @@
     for (var i = 0; i < 7; i++) {
         workingTimes.push(new workingTime);
     }
-
-    // sharing the data with modal and table
-    // make sure the event is bind via bindShownEvent, bindHiddenEvent
-    var sharedWeekDay = undefined;
 
     Number.prototype.toHM = function() {
         return Math.floor(this/60) + "時" + this%60 + "分";
@@ -28,6 +24,8 @@
         var $wt = $('#wtm-workTime');
         var $rt = $('#wtm-releaseTime');
         var $tt = $('#wtm-totalTime');
+
+        var weekDay = null;
 
         $st.change(function () {
             changeResult();
@@ -46,8 +44,8 @@
         function changeResult() {
             console.log("Need re calculate");
             var ft = parseInt($ft.val());
-            var stm = moment($st.val(), "hh:mm");
-            var etm = moment($et.val(), "hh:mm");
+            var stm = moment($st.val(), "HH:mm");
+            var etm = moment($et.val(), "HH:mm");
             var wtdiff = etm.diff(stm, "minutes");
             var isBreak = $ib.prop("checked") === true;
 
@@ -73,22 +71,24 @@
         };
 
         $("#test-modal-button").on('click', function () {
-            var workingTime = workingTimes[sharedWeekDay];
+            var workingTime = workingTimes[weekDay];
 
             if ($ib.prop("checked")) {
                 workingTime.isBreak = true;
             } else {
-                workingTime.startTime = $st.val();
-                workingTime.endTime = $et.val();
-                workingTime.freeTime = $ft.val();
+                workingTime.startTime = moment($st.val(), "HH:mm");
+                workingTime.endTime = moment($et.val(), "HH:mm");
+                workingTime.freeTime = parseInt($ft.val());
                 workingTime.isBreak = false;
             }
 
             $('#test-modal').modal('hide');
+            onWorkingTimeUpdated(weekDay);
         });
 
-        $('#test-modal').on('show.bs.modal', function () {
-            var workingTime = workingTimes[sharedWeekDay];
+        $('#test-modal').on('show.bs.modal', function (event) {
+            weekDay = event.relatedTarget;
+            var workingTime = workingTimes[weekDay];
 
             if (workingTime.isBreak) {
                 $st.val("");
@@ -97,19 +97,15 @@
                 $ib.prop("checked", true);
             } else {
                 // initial all value
-                $st.val(workingTime.startTime);
-                $et.val(workingTime.endTime);
+                $st.val(workingTime.startTime.format("HH:mm"));
+                $et.val(workingTime.endTime.format("HH:mm"));
                 $ft.val(workingTime.freeTime);
                 $ib.prop("checked", false);
             }
 
-            $("#myModalWeekDaySpan").html(["一", "二", "三", "四", "五", "六", "日"][sharedWeekDay]);
+            $("#myModalWeekDaySpan").html(["一", "二", "三", "四", "五", "六", "日"][weekDay]);
 
             changeResult();
-        });
-
-        $('#test-modal').on('hidden.bs.modal', function () {
-            onWorkingTimeUpdated(sharedWeekDay);
         });
     }
    
@@ -120,8 +116,7 @@
             var workingTime = workingTimes[weekDay];
 
             $("#weekday-" + item).on('click', function () {
-                sharedWeekDay = weekDay;
-                $('#test-modal').modal('show');
+                $('#test-modal').modal('show', weekDay);
             });
 
             onWorkingTimeUpdated(weekDay);
@@ -139,8 +134,8 @@
             me.find(".end").html("");
             me.find(".break").html("");
         } else {
-            me.find(".start").html(workingTime.startTime);
-            me.find(".end").html(workingTime.endTime);
+            me.find(".start").html(workingTime.startTime.format("HH:mm"));
+            me.find(".end").html(workingTime.endTime.format("HH:mm"));
             me.find(".break").html(workingTime.freeTime);
         }
     }
@@ -155,7 +150,7 @@
         callback && callback();
     };
 
-})(window, jQuery);
+})(window, jQuery, moment);
 
 window.init(function () {
     $("#weekday-1").click();
