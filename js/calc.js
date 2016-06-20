@@ -30,7 +30,7 @@ function calcWorkingTime(startTime, endTime, breakDuration){
 	if(startTime == null && endTime == null){
 		return 0;
 	}
-	var workingTime = endTime.diff(startTime) - breakDuration;
+	var workingTime = endTime.diff(startTime, "hour") - breakDuration;
 	return workingTime; 
 }
 
@@ -159,7 +159,7 @@ function __checkTimeFormat(startTime, endTime, breakDuration){
 			return false;
 		}
 		else{
-			if(typeof(startTime) == "moment" && typeof(endTime) == "moment" && typeof(breakDuration) == "number"){
+			if((startTime instanceof moment) && (endTime instanceof moment) && typeof(breakDuration) == "number"){
 				if(endTime.isBefore(startTime)){
 					throw "TimeIntervalError: endTime is before startTime";	
 					return false;
