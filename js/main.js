@@ -2,7 +2,7 @@
     function workingTime() {
         this.startTime = moment('08:00', 'HH:mm');
         this.endTime = moment('17:00', 'HH:mm');
-        this.freeTime = 1;
+        this.freeTime = moment.duration(1, "hour");
         this.isBreak = false;
     }
 
@@ -59,15 +59,15 @@
 
         function changeResult() {
             console.log("Need re calculate");
-            var ft = parseInt($ft.val());
+            var ft = moment.duration(parseInt($ft.val()), "minute");
             var stm = moment($st.val(), "HH:mm");
             var etm = moment($et.val(), "HH:mm");
-            var wtdiff = etm.diff(stm, "minutes");
+            var wtdiff = moment.duration(etm.diff(stm));
             var isBreak = $ib.prop("checked") === true;
 
             if (isBreak) {
                 $wt.html((0).toHM());
-                $rt.html("0時");
+                $rt.html("0分");
                 $tt.html((0).toHM());
 
                 $st.prop("disabled", true);
@@ -75,9 +75,9 @@
                 $ft.prop("disabled", true);
             } else {
                 // FIXME
-                $wt.html(wtdiff.toHM());
-                $rt.html(ft + "時");
-                var totalTimeInMinutes = wtdiff - ft * 60;
+                $wt.html(wtdiff.asMinutes().toHM());
+                $rt.html(ft.asMinutes().toHM());
+                var totalTimeInMinutes = moment.duration(wtdiff - ft).asMinutes();
                 $tt.html(totalTimeInMinutes.toHM());
 
                 $st.prop("disabled", false);
@@ -94,7 +94,7 @@
             } else {
                 workingTime.startTime = moment($st.val(), "HH:mm");
                 workingTime.endTime = moment($et.val(), "HH:mm");
-                workingTime.freeTime = parseInt($ft.val());
+                workingTime.freeTime = moment.duration(parseInt($ft.val()), "minute");
                 workingTime.isBreak = false;
             }
 
@@ -117,7 +117,7 @@
                 // initial all value
                 $st.val(workingTime.startTime.format("HH:mm"));
                 $et.val(workingTime.endTime.format("HH:mm"));
-                $ft.val(workingTime.freeTime);
+                $ft.val(workingTime.freeTime.asMinutes());
                 $ib.prop("checked", false);
             }
 
@@ -158,7 +158,7 @@
         } else {
             me.find(".start").html(workingTime.startTime.format("HH:mm"));
             me.find(".end").html(workingTime.endTime.format("HH:mm"));
-            me.find(".break").html(workingTime.freeTime);
+            me.find(".break").html(workingTime.freeTime.asMinutes());
         }
     }
 
@@ -182,9 +182,15 @@ window.workingTimesForm.init(function () {
     $("#weekday-1").click();
 
     workingTimesForm.on("WorkingTimesChanged", function(workingTimes) {
+        updateWokingTime(workingTimes);
+    });
+
+    updateWokingTime(window.workingTimesForm.workingTimes);
+
+    function updateWokingTime(workingTimes) {
         $.each(workingTimes, function(i, workingTime) {
             var weekDay = i + 1;
             $("#weekday-" + weekDay).find(".workingTime").text(calcWorkingTime(workingTime.startTime, workingTime.endTime, workingTime.freeTime));
         });
-    });
+    }
 });
