@@ -10,6 +10,25 @@ if (typeof module !== 'undefined') {
 }
 (function (exports, moment) {
 
+function Working() {
+    this.startTime     = moment();
+    this.endTime       = moment();
+    this.breakDuration = moment.duration(0);
+    this.isBreak       = true;
+}
+exports.Working = Working;
+
+Working.prototype = {
+    clone: function() {
+        var w = new Working();
+        w.startTime = this.startTime.clone();
+        w.endTime   = this.endTime.clone();
+        w.breakDuration = moment.duration(this.breakDuration);
+        w.isBreak = this.isBreak;
+        return w;
+    }
+};
+
 //rule 30.1 
 const normalDayTime = moment.duration(8, 'hours');
 const normalWeekTime = moment.duration(40, 'hours');
