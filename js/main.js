@@ -4,6 +4,7 @@
         this.endTime = moment('17:00', 'HH:mm');
         this.freeTime = moment.duration(1, "hours");
         this.isBreak = false;
+        this.isRoutineDayOff = false;
     }
 
     var workingTimes = exports.workingTimes = [];
@@ -37,6 +38,7 @@
         var $et = $('#wtm-endTime');
         var $ft = $('#wtm-freeTime');
         var $ib = $('#wtm-isBreak');
+        var $irdo = $('#wtm-isRoutineDayOff');
         var $wt = $('#wtm-workTime');
         var $rt = $('#wtm-releaseTime');
         var $tt = $('#wtm-totalTime');
@@ -58,10 +60,11 @@
 
         function formToData() {
             var data = {
-                freeTime  : moment.duration(parseInt($ft.val()), "minutes"),
-                startTime : moment($st.val(), "HH:mm"),
-                endTime   : moment($et.val(), "HH:mm"),
-                isBreak   : ($ib.prop("checked") === true),
+                freeTime        : moment.duration(parseInt($ft.val()), "minutes"),
+                startTime       : moment($st.val(), "HH:mm"),
+                endTime         : moment($et.val(), "HH:mm"),
+                isBreak         : ($ib.prop("checked") === true),
+                isRoutineDayOff : ($irdo.prop("checked") === true),
             }
             return data;
         }
@@ -95,11 +98,7 @@
         $("#test-modal-button").on('click', function () {
             var workingTime = workingTimes[weekDay];
 
-            if ($ib.prop("checked")) {
-                workingTimes[weekDay] = formToData();
-            } else {
-                workingTimes[weekDay] = formToData();
-            }
+            workingTimes[weekDay] = formToData();
 
             $('#test-modal').modal('hide');
 
@@ -123,6 +122,7 @@
                 $ft.val(workingTime.freeTime.asMinutes());
                 $ib.prop("checked", false);
             }
+            $irdo.prop("checked", workingTime.isRoutineDayOff);
 
             $("#myModalWeekDaySpan").html(["一", "二", "三", "四", "五", "六", "日"][weekDay]);
 
@@ -162,6 +162,11 @@
             me.find(".start").html(workingTime.startTime.format("HH:mm"));
             me.find(".end").html(workingTime.endTime.format("HH:mm"));
             me.find(".break").html(workingTime.freeTime.asMinutes());
+        }
+        if (workingTime.isRoutineDayOff) {
+            me.css("background-color", "#FF3333");
+        } else {
+            me.css("background-color", "");
         }
     }
 

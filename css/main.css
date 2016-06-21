@@ -2,6 +2,8 @@
     width: 100px;
     display: inline-block;
     height: 200px;
+    margin-left: 0;
+    margin-right: 0;
 }
 .oneday div {
     height: 30px;
