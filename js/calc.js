@@ -22,15 +22,20 @@ function calcHourSalary(monthSalary){
 	return monthSalary / 240; 
 }
 
-
+/*
+ * @param  startTime     moment
+ * @param  endTime       moment
+ * @param  breakDuration Duration
+ */
 function calcWorkingTime(startTime, endTime, breakDuration){
-	if(__checkTimeFormat(startTime, endTime, breakDuration) == false){
-		return;
-	}
-	if(startTime == null && endTime == null){
-		return 0;
-	}
-	var workingTime = endTime.diff(startTime, "hour") - breakDuration;
+	//if(__checkTimeFormat(startTime, endTime, breakDuration) == false){
+	//	return;
+	//}
+	//if(startTime == null && endTime == null){
+	//	return 0;
+	//}
+    var workingTimeDuration = moment.duration(endTime.diff(startTime));
+	var workingTime = moment.duration(workingTimeDuration - breakDuration);
 	return workingTime; 
 }
 

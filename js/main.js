@@ -2,7 +2,7 @@
     function workingTime() {
         this.startTime = moment('08:00', 'HH:mm');
         this.endTime = moment('17:00', 'HH:mm');
-        this.freeTime = 1;
+        this.freeTime = moment.duration(1, "hours");
         this.isBreak = false;
     }
 
@@ -52,33 +52,39 @@
         $ft.change(function () {
             changeResult();
         });
-
         $ib.change(function() {
             changeResult();
         });
 
+        function formToData() {
+            var data = {
+                freeTime  : moment.duration(parseInt($ft.val()), "minutes"),
+                startTime : moment($st.val(), "HH:mm"),
+                endTime   : moment($et.val(), "HH:mm"),
+                isBreak   : ($ib.prop("checked") === true),
+            }
+            return data;
+        }
+
         function changeResult() {
             console.log("Need re calculate");
-            var ft = parseInt($ft.val());
-            var stm = moment($st.val(), "HH:mm");
-            var etm = moment($et.val(), "HH:mm");
-            var wtdiff = etm.diff(stm, "minutes");
-            var isBreak = $ib.prop("checked") === true;
+            
+            var workingTime = formToData();
+            var workingTimeDuration = moment.duration(workingTime.endTime -workingTime.startTime);
+            var totalTimeDuration   = moment.duration(workingTimeDuration - workingTime.freeTime);
 
-            if (isBreak) {
+            if (workingTime.isBreak) {
                 $wt.html((0).toHM());
-                $rt.html("0時");
+                $rt.html((0).toHM());
                 $tt.html((0).toHM());
 
                 $st.prop("disabled", true);
                 $et.prop("disabled", true);
                 $ft.prop("disabled", true);
             } else {
-                // FIXME
-                $wt.html(wtdiff.toHM());
-                $rt.html(ft + "時");
-                var totalTimeInMinutes = wtdiff - ft * 60;
-                $tt.html(totalTimeInMinutes.toHM());
+                $wt.html(workingTimeDuration.asMinutes().toHM());
+                $rt.html(workingTime.freeTime.asMinutes().toHM());
+                $tt.html(totalTimeDuration.asMinutes().toHM());
 
                 $st.prop("disabled", false);
                 $et.prop("disabled", false);
@@ -90,12 +96,9 @@
             var workingTime = workingTimes[weekDay];
 
             if ($ib.prop("checked")) {
-                workingTime.isBreak = true;
+                workingTimes[weekDay] = formToData();
             } else {
-                workingTime.startTime = moment($st.val(), "HH:mm");
-                workingTime.endTime = moment($et.val(), "HH:mm");
-                workingTime.freeTime = parseInt($ft.val());
-                workingTime.isBreak = false;
+                workingTimes[weekDay] = formToData();
             }
 
             $('#test-modal').modal('hide');
@@ -117,7 +120,7 @@
                 // initial all value
                 $st.val(workingTime.startTime.format("HH:mm"));
                 $et.val(workingTime.endTime.format("HH:mm"));
-                $ft.val(workingTime.freeTime);
+                $ft.val(workingTime.freeTime.asMinutes());
                 $ib.prop("checked", false);
             }
 
@@ -158,7 +161,7 @@
         } else {
             me.find(".start").html(workingTime.startTime.format("HH:mm"));
             me.find(".end").html(workingTime.endTime.format("HH:mm"));
-            me.find(".break").html(workingTime.freeTime);
+            me.find(".break").html(workingTime.freeTime.asMinutes());
         }
     }
 
@@ -182,9 +185,15 @@ window.workingTimesForm.init(function () {
     $("#weekday-1").click();
 
     workingTimesForm.on("WorkingTimesChanged", function(workingTimes) {
+        updateWokingTime(workingTimes);
+    });
+
+    updateWokingTime(window.workingTimesForm.workingTimes);
+
+    function updateWokingTime(workingTimes) {
         $.each(workingTimes, function(i, workingTime) {
             var weekDay = i + 1;
-            $("#weekday-" + weekDay).find(".workingTime").text(calcWorkingTime(workingTime.startTime, workingTime.endTime, workingTime.freeTime));
+            $("#weekday-" + weekDay).find(".workingTime").text(calcWorkingTime(workingTime.startTime, workingTime.endTime, workingTime.freeTime).asHours());
         });
-    });
+    }
 });
