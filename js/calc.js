@@ -1,4 +1,14 @@
-
+(function() {
+var e, m;
+if (typeof module !== 'undefined') {
+    e = module.exports;
+    m = require('moment');
+} else {
+    window.calc = window.calc || {};
+    e = window.calc;
+    m = moment;
+}
+(function (exports, moment) {
 /*
 
 Definition of names:
@@ -40,9 +50,10 @@ function calcWorkingTime(startTime, endTime, breakDuration){
 	if(startTime == null && endTime == null){
 		return 0;
 	}
-	var workingTime = moment.duration(endTime.diff(startTime)).substract(breakDuration); //FIXME
+	var workingTime = moment.duration(endTime.diff(startTime)).sustract(breakDuration); //FIXME
 	return workingTime; 
 }
+exports.calcWorkingTime = calcWorkingTime;
 
 /*
 	->正常工時(NormalWorkingTime, nwt):
@@ -190,4 +201,5 @@ function calcOvertimeSalary_OneWeek(startTimeArr, endTimeArr, breakDurationArr, 
 
 }
 
-
+})(e, m);
+})();
