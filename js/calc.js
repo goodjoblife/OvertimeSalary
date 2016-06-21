@@ -50,7 +50,7 @@ function calcWorkingTime(startTime, endTime, breakDuration){
 	if(startTime == null && endTime == null){
 		return 0;
 	}
-	var workingTime = moment.duration(endTime.diff(startTime)).sustract(breakDuration); //FIXME
+	var workingTime = moment.duration(endTime.diff(startTime)).subtract(breakDuration); //FIXME
 	return workingTime; 
 }
 exports.calcWorkingTime = calcWorkingTime;
