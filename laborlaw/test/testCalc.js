@@ -36,8 +36,8 @@ assert.equal(800,
 );
 
     });
-});
 
+    it('should seperate the test', function() {
 var hourSalary = 100;
 
 //test case 1: overtimeSalary = 0
@@ -162,3 +162,5 @@ breakDurationArr = [
 
 s = calc.calcOvertimeSalary_OneWeek(startTimeArr, endTimeArr, breakDurationArr, hourSalary);
 console.log("Expected: 1066\tActual:", s);
+    });
+});
