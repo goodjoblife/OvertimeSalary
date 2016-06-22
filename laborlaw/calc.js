@@ -34,7 +34,19 @@ Working.prototype = {
             }
         }
         return w;
-    }
+    },
+};
+
+function WorkingCollection() {
+    this.data = [];
+}
+exports.WorkingCollection = WorkingCollection;
+
+WorkingCollection.prototype = {
+    push: function(d) {
+        this.data.push(d);
+        return this;
+    },
 };
 
 //rule 30.1 
@@ -45,6 +57,11 @@ const normalWeekTime = moment.duration(40, 'hours');
 //FIXME: check whether it is really month salary / 240
 function calcHourSalary(monthSalary){
 	return monthSalary / 240; 
+}
+
+Working.prototype.calcHourSalary = function() {
+    this.hourSalary = calcHourSalary(this.monthSalary);
+    return this;
 }
 
 /*
@@ -60,6 +77,11 @@ function calcWorkingTime(startTime, endTime, breakDuration){
 	return workingTime; 
 }
 exports.calcWorkingTime = calcWorkingTime;
+
+Working.prototype.calcWorkingTimeDuration = function() {
+    this.workingTimeDuration = calcWorkingTime(this.startTime, this.endTime, this.breakDuration);
+    return this;
+}
 
 /*
  * @param  startTime     moment
@@ -101,6 +123,10 @@ function divideWorkingTime(startTime, endTime, breakDuration, isRoutineDayOff=fa
 	}
 	return [nwtNormal, nwtRoutineOff, nwtHoliday, ewtNormal, ewtDayOff];
 }
+
+Working.prototype.divideWorkingTime = function() {
+
+};
 
 function __calcNormalWorkingTime(workingTime){
 	return (workingTime > normalDayTime) ? moment.duration(normalDayTime) : workingTime ; 
