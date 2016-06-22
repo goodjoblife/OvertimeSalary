@@ -27,9 +27,9 @@ function calcHourSalary(monthSalary){
  */
 function calcWorkingTime(startTime, endTime, breakDuration){
 	if(startTime == null && endTime == null){
-		return 0;
+		return moment.duration(0);
 	}
-	var workingTime = moment.duration(endTime.diff(startTime)).subtract(breakDuration); //FIXME
+	var workingTime = moment.duration(endTime.diff(startTime)).subtract(breakDuration);
 	return workingTime; 
 }
 exports.calcWorkingTime = calcWorkingTime;
@@ -56,17 +56,19 @@ exports.calcWorkingTime = calcWorkingTime;
 
 	return value: [nwtNormal, nwtRoutineOff, nwtHolidayMoved] if one of them does not exist, return null;
 */
-function divideWorkingTime(startTime, endTime, breakDuration, isRoutineDayOff=false){
+function divideWorkingTime(startTime, endTime, breakDuration, isRoutineDayOff){
+   	if (typeof(isRoutineDayOff)==='undefined') isRoutineDayOff = false;
+   
 	var workingTime = calcWorkingTime(startTime, endTime, breakDuration);
 	var nwtNormal = moment.duration(0), nwtRoutineOff = moment.duration(0), nwtHoliday = moment.duration(0); 
 	var ewtNormal = moment.duration(0), ewtDayOff = moment.duration(0);
 	if(isRoutineDayOff){
 		nwtRoutineOff = __calcNormalWorkingTime(workingTime);
-		ewtDayOff += __calcExtendedWorkingTime(workingTime);
+		ewtDayOff.add(__calcExtendedWorkingTime(workingTime));
 	}
 	else if(isNationalHoliday(startTime)){
 		nwtHoliday = __calcNormalWorkingTime(workingTime);
-		ewtDayOff += __calcExtendedWorkingTime(workingTime);
+		ewtDayOff.add(__calcExtendedWorkingTime(workingTime));
 	}
 	else{
 		nwtNormal = __calcNormalWorkingTime(workingTime);
@@ -89,7 +91,10 @@ function __calcExtendedWorkingTime(workingTime){
  * @param  routineDayOffDay number(from 0 to 6)
  * @param  restDay          number(from 0 to 6)
 */
-function divideWorkingTime_OneWeek(startTimeArr, endTimeArr, breakDurationArr, routineDayOffDay=0, restDay=6){
+function divideWorkingTime_OneWeek(startTimeArr, endTimeArr, breakDurationArr, routineDayOffDay, restDay){
+	if (typeof(routineDayOffDay)==='undefined') routineDayOffDay = 0;
+	if (typeof(restDay)==='undefined') restDay = 6;
+
 	const nDays = 7;
 	var nwtNormalArr = new Array();
 	var nwtRoutineOffArr = new Array();
@@ -122,7 +127,7 @@ function divideWorkingTime_OneWeek(startTimeArr, endTimeArr, breakDurationArr, r
 			ewtRestMoreArr[index] = ewtNormalArr[index];
 			
 			ewtNormalArr[index] = moment.duration(0);
-			nwtNormalArr[index] = nwtNormalArr[index] - extended;
+			nwtNormalArr[index].subtract(extended);
 		}
 		else{
 			//should be impossible
@@ -162,14 +167,16 @@ exports.isNationalHoliday = isNationalHoliday;
 
 
 function calcOvertimeSalary(nwtRoutineOff, nwtHoliday, ewtNormal, ewtDayOff, 
-	ewtRest, ewtRestMore, hourSalary, salaryBonus=[4.0/3.0, 5.0/3.0, 5.0/3.0]){
+	ewtRest, ewtRestMore, hourSalary, salaryBonus){
+	if (typeof(salaryBonus)==='undefined') salaryBonus = [4.0/3.0, 5.0/3.0, 5.0/3.0];
+
 	var salary = 0.0;
 	var h = 0; 
 	if(nwtRoutineOff != 0 || nwtHoliday != 0){
 		salary += normalDayTime.hours() * hourSalary;
 	}
 
-	if(ewtNormal != 0 || ewtDayOff != 0){ //one of them should be 0
+	if(ewtNormal != 0){ 
 		h = ewtNormal.hours();
 	}
 	else if(ewtDayOff != 0){
@@ -196,7 +203,7 @@ function calcOvertimeSalary(nwtRoutineOff, nwtHoliday, ewtNormal, ewtDayOff,
 		salary += h * hourSalary * salaryBonus[salaryBonus.length - 1];
 	}
 	
-	//substract the money already given
+	//subtract the money already given
 	if(ewtRest != 0){
 		salary -= ewtRest.hours() * hourSalary; 
 	}
@@ -204,7 +211,11 @@ function calcOvertimeSalary(nwtRoutineOff, nwtHoliday, ewtNormal, ewtDayOff,
 }
 
 function calcOvertimeSalary_OneWeek(startTimeArr, endTimeArr, breakDurationArr, hourSalary, 
-	routineDayOffDay=0, restDay=6, salaryBonus=[4.0/3.0, 5.0/3.0, 5.0/3.0]){
+	routineDayOffDay, restDay, salaryBonus){
+	if (typeof(routineDayOffDay)==='undefined') routineDayOffDay = 0;
+	if (typeof(restDay)==='undefined') restDay = 6;
+	if (typeof(salaryBonus)==='undefined') salaryBonus = [4.0/3.0, 5.0/3.0, 5.0/3.0];
+
 	[nwtNormalArr, nwtRoutineOffArr, nwtHolidayArr, ewtNormalArr, ewtDayOffArr, 
 		ewtRestArr, ewtRestMoreArr] = divideWorkingTime_OneWeek(startTimeArr, endTimeArr, 
 			breakDurationArr, routineDayOffDay, restDay);
