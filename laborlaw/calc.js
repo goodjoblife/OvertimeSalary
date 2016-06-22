@@ -10,6 +10,45 @@ if (typeof module !== 'undefined') {
 }
 (function (exports, moment) {
 
+function Working() {
+    this.startTime     = moment();
+    this.endTime       = moment();
+    this.breakDuration = moment.duration(0);
+    this.isBreak       = true;
+}
+exports.Working = Working;
+
+Working.prototype = {
+    clone: function() {
+        var w = new Working();
+        for (var key in this) {
+            if (this.hasOwnProperty(key)) {
+                if (this[key] instanceof moment) {
+                    w[key] = this[key].clone();
+                } else if (moment.isDuration(this[key])) {
+                    w[key] = moment.duration(this[key]);
+                } else {
+                    // FIXME
+                    w[key] = this[key];
+                }
+            }
+        }
+        return w;
+    },
+};
+
+function WorkingCollection() {
+    this.data = [];
+}
+exports.WorkingCollection = WorkingCollection;
+
+WorkingCollection.prototype = {
+    push: function(d) {
+        this.data.push(d);
+        return this;
+    },
+};
+
 //rule 30.1 
 const normalDayTime = moment.duration(8, 'hours');
 const normalWeekTime = moment.duration(40, 'hours');
@@ -18,6 +57,11 @@ const normalWeekTime = moment.duration(40, 'hours');
 //FIXME: check whether it is really month salary / 240
 function calcHourSalary(monthSalary){
 	return monthSalary / 240; 
+}
+
+Working.prototype.calcHourSalary = function() {
+    this.hourSalary = calcHourSalary(this.monthSalary);
+    return this;
 }
 
 /*
@@ -33,6 +77,11 @@ function calcWorkingTime(startTime, endTime, breakDuration){
 	return workingTime; 
 }
 exports.calcWorkingTime = calcWorkingTime;
+
+Working.prototype.calcWorkingTimeDuration = function() {
+    this.workingTimeDuration = calcWorkingTime(this.startTime, this.endTime, this.breakDuration);
+    return this;
+}
 
 /*
  * @param  startTime     moment
@@ -73,6 +122,24 @@ function divideWorkingTime(startTime, endTime, breakDuration, isRoutineDayOff=fa
 		ewtNormal = __calcExtendedWorkingTime(workingTime);
 	}
 	return [nwtNormal, nwtRoutineOff, nwtHoliday, ewtNormal, ewtDayOff];
+}
+
+Working.prototype.divideWorkingTime = function() {
+
+};
+
+Working.prototype.calcIsNationalHoliday = function() {
+    this.isNationalHoliday = isNationalHoliday(this.startTime);
+    return this;
+}
+
+Working.prototype.calcNormalWorkingTimeDurationOnNationalHoliday = function() {
+    if (this.calcIsNationalHoliday().isNationalHoliday) {
+        this.normalWorkingTimeDurationOnNationalHoliday = __calcNormalWorkingTime(this.workingTime);
+    } else {
+        this.normalWorkingTimeDurationOnNationalHoliday = moment.duration(0);
+    }
+    return this;
 }
 
 function __calcNormalWorkingTime(workingTime){
