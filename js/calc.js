@@ -1,16 +1,14 @@
-
-
-/*
-	This file contains the functions for calculating bonus salary
-
-	Names:
-		Routine Day Off: 例假日
-		National Holiday: 國定假日
-		Special Day Off: 特別休假日
-		Bonus: 工資加給 (包含延長工時加給+休假日工作加給)
-		DayOffBonus: 休假日工作加給
-		ExtendedBonus = 延長工時加給
-*/
+(function() {
+var e, m;
+if (typeof module !== 'undefined') {
+    e = module.exports;
+    m = require('moment');
+} else {
+    window.calc = window.calc || {};
+    e = window.calc;
+    m = moment;
+}
+(function (exports, moment) {
 
 //rule 30.1 
 const normalDayTime = moment.duration(8, 'hours');
@@ -28,242 +26,200 @@ function calcHourSalary(monthSalary){
  * @param  breakDuration Duration
  */
 function calcWorkingTime(startTime, endTime, breakDuration){
-	//if(__checkTimeFormat(startTime, endTime, breakDuration) == false){
-	//	return;
-	//}
-	//if(startTime == null && endTime == null){
-	//	return 0;
-	//}
-    var workingTimeDuration = moment.duration(endTime.diff(startTime));
-	var workingTime = moment.duration(workingTimeDuration - breakDuration);
+	if(startTime == null && endTime == null){
+		return 0;
+	}
+	var workingTime = moment.duration(endTime.diff(startTime)).subtract(breakDuration); //FIXME
 	return workingTime; 
 }
+exports.calcWorkingTime = calcWorkingTime;
 
 /*
-	In this function, we calculate extended working time for one day without 
-	considering day-off and changed working hours rules
-	
-	startTime, endTime are moment object, breakDuration is number (seconds)
-	return value: extended time in seconds 
+ * @param  startTime     moment
+ * @param  endTime       moment
+ * @param  breakDuration Duration
+ * @param  isRoutineDayOff boolean
+	->正常工時(NormalWorkingTime, nwt):
+		->非休假日: 平日每小時工資
+		->休假日(NormalWorkingTimeOnNormalDay, nwtNormal): 
+			->例假日(NormalWorkingTimeOnRoutineDayOff, nwtRoutineOff): 外加8小時薪資，需補休  //TODO
+			->國定休假日: 
+				->輪班人員 & 調移至其他日休假: 平日每小時工資(暫不考慮)
+				->否則(NormalWorkingTimeOnNationalHoliday, nwtHoliday): 外加8小時薪資，不需補休。  //TODO
+			->特休日: 暫不考慮
+	->延長工時(ExtendedWorkingTime, ewt)
+		->超過每日8小時: 
+			->休假日(ExtendedWorkingTimeOnDayOff, ewtDayOff): 1.33開始 
+			->正常工作日(ExtendedWorkingTimeOnNormalDay, ewtNormal): 1.33開始 
+			->休息日(以上兩者除外) (ExtendedWorkingTimeOnRestDay_Exceed8Hour, ewtRestMore): depends on ewtRest
+		->未超過每日8小時，但超過一週40小時(ExtendedWorkingTimeOnRestDay, ewtRest) : 0.33開始 
+
+	return value: [nwtNormal, nwtRoutineOff, nwtHolidayMoved] if one of them does not exist, return null;
 */
-//FIXME: we assume the beginning time and ending time of working are on same day
-function calcExtendedTime(startTime, endTime, breakDuration){
-	workingTime = calcWorkingTime(startTime, endTime, breakDuration);
-	var extendedTime = (workingTime > normalDayTime) ? (workingTime - normalDayTime) : 0 ; 
-	return extendedTime; 
+function divideWorkingTime(startTime, endTime, breakDuration, isRoutineDayOff=false){
+	var workingTime = calcWorkingTime(startTime, endTime, breakDuration);
+	var nwtNormal = moment.duration(0), nwtRoutineOff = moment.duration(0), nwtHoliday = moment.duration(0); 
+	var ewtNormal = moment.duration(0), ewtDayOff = moment.duration(0);
+	if(isRoutineDayOff){
+		nwtRoutineOff = __calcNormalWorkingTime(workingTime);
+		ewtDayOff += __calcExtendedWorkingTime(workingTime);
+	}
+	else if(isNationalHoliday(startTime)){
+		nwtHoliday = __calcNormalWorkingTime(workingTime);
+		ewtDayOff += __calcExtendedWorkingTime(workingTime);
+	}
+	else{
+		nwtNormal = __calcNormalWorkingTime(workingTime);
+		ewtNormal = __calcExtendedWorkingTime(workingTime);
+	}
+	return [nwtNormal, nwtRoutineOff, nwtHoliday, ewtNormal, ewtDayOff];
 }
 
-function calcExtendedTimeByWorkingTime(workingTime){
-	var extendedTime = (workingTime > normalDayTime) ? (workingTime - normalDayTime) : 0 ; 
-	return extendedTime; 
+function __calcNormalWorkingTime(workingTime){
+	return (workingTime > normalDayTime) ? moment.duration(normalDayTime) : workingTime ; 
+}
+function __calcExtendedWorkingTime(workingTime){
+	return (workingTime > normalDayTime) ? moment.duration(workingTime - normalDayTime) : moment.duration(0) ; 
 }
 
 /*
-	In this function, we calculate extended working time for one week without 
-	considering changed working hours rules
-	
-	startTime, endTime are moment object, breakDuration is number (seconds)
-	return value: an array of extended time for each day (in seconds)  
+ * @param  startTimeArr     array of moment
+ * @param  endTimeArr       array of moment
+ * @param  breakDurationArr array of Duration
+ * @param  routineDayOffDay number(from 0 to 6)
+ * @param  restDay          number(from 0 to 6)
 */
-//FIXME: we assume the beginning time and ending time of working are on same day
-function calcExtendedTime_OneWeek(startTimeArr, endTimeArr, breakDurationArr){
-	if((startTimeArr.length != endTimeArr.length) || (endTimeArr.length != breakDuration.length)){
-		throw "InputError: length of array are not consistent";
-	}
-	if(startTimeArr.length != 7){
-		throw "InputError: should be 7 days";
-	}
-	__checkConsecutiveDays(beginTimeArr);
-
-	var nDays = 7;
+function divideWorkingTime_OneWeek(startTimeArr, endTimeArr, breakDurationArr, routineDayOffDay=0, restDay=6){
+	const nDays = 7;
+	var nwtNormalArr = new Array();
+	var nwtRoutineOffArr = new Array();
+	var nwtHolidayArr = new Array();
+	var ewtNormalArr = new Array();
+	var ewtDayOffArr = new Array();
+	var ewtRestArr = new Array();
+	var ewtRestMoreArr = new Array();
+	var ntwWeek = moment.duration(0);
+	
+	//get normal working time for each day
 	for(var i = 0; i < nDays; i++){
-		if(__checkTimeFormat(startTimeArr[i], endTimeArr[i], breakDurationArr[i]) == false){
-			return;
-		}
+		var isRoutineDayOff = __checkRoutineDayOff(startTimeArr[i], routineDayOffDay);
+		[nwtNormalArr[i], nwtRoutineOffArr[i], nwtHolidayArr[i], ewtNormalArr[i], 
+			ewtDayOffArr[i]] = divideWorkingTime(startTimeArr[i], endTimeArr[i], breakDurationArr[i], isRoutineDayOff);
+
+		ewtRestArr[i] = moment.duration(0);
+		ewtRestMoreArr[i] = moment.duration(0);
+		ntwWeek.add(nwtNormalArr[i]);		
 	}
-
-	var workingTimeArr = new Array(7);
-	var extendedTimeArr = new Array(7);
-	var weekWorkingTime = 0;
-
-	//calculate working time and extended working time for each day
-	for(var i = 0; i < nDays; i++){
-		var s = startTimeArr[i];
-		var e = endTimeArr[i];
-		var b = breakDurationArr[i];
-		var day = s.day();
-		workingTimeArr[i] = calcWorkingTime(startTimeArr[i], endTimeArr[i], breakDurationArr[i]);
-		weekWorkingTime += workingTimeArr[i];
-		extendedTimeArr[i] = calcExtendedTimeByWorkingTime(workingTimeArr[i]);
-
-	}
-
-	//calculate extended working time for this week 
-	weekExtendedTime = (weekWorkingTime > normaWeekTime) ? (weekWorkingTime - normalWeekTime) : 0; 
-	distributedExtendedTimeArr = __distributeWeekExtendedTime(weekExtendedTime, workingTimeArr, extendedTimeArr);
-
-	return [extendedTimeArr, distributedExtendedTimeArr];
-}
-
-function __distributeWeekExtendedTime(weekExtendedTime, workingTimeArr, extendedTimeArr, dateArray, order=[0, 6, 5, 4, 3, 2, 1]){
-	var nDays = 7;
-	distributedExtendedTimeArr = new Array(nDays);
-	for(var i=0; i< nDays; i++){
-		distributedExtendedTimeArr[i] = 0;
-	}
-	
-	if(weekExtendedTime > 0){
-		for(var i = 0; i < nDays; i++){
-			weekExtendedTime -= extendedTimeArr[i]; 
-		}
-		if(weekExtendedTime < 0){  //all week extended time are day extended time
-			return distributedExtendedTimeArr; 
-		}
-		else{ //some of week extended time are not day extended time, we need to re-define day extended time
-			//generate day to array index mapping
-			var mapping = new Array(nDays);
-			for(var i=0; i< nDays; i++){
-				mapping[dateArr[i].day()] = i;
-			}
-			//distributing by the given order
-			for(var i=0; i < nDays; i++){
-				var day = order[i];
-				var index = mapping[day];
-				if(weekExtendedTime > workingTimeArr[index]){
-					weekExtendedTime -= workingTimeArr[index];
-					distributedExtendedTimeArr[index] += workingTimeArr[index];
-				}
-				else{
-					distributedExtendedTimeArr[index] += weekExtendedTime;
-					weekExtendedTime = 0; 
-					break;
-				}
-			}
-			return distributedExtendedTimeArr;
-		}
-	}
-	else{
-		return distributedExtendedTimeArr;
-	}
-	
-}
-
-function __checkTimeFormat(startTime, endTime, breakDuration){
-	if(startTime == null){
-		if(endTime == null){
-			return true; 
-		}
-		else{
-			throw "TimeIntervalError: startTime is null but endTime is NOT null";
-			return false;
-		}
-	}
-	else{
-		if(endTime == null){
-			throw "TimeIntervalError: startTime is NOT null but endTime is null";	
-			return false;
-		}
-		else{
-			if((startTime instanceof moment) && (endTime instanceof moment) && typeof(breakDuration) == "number"){
-				if(endTime.isBefore(startTime)){
-					throw "TimeIntervalError: endTime is before startTime";	
-					return false;
-				}
-				else{
-					return true;
-				}
-			}
-			else{
-				throw "InputTypeError: input type is not correct";
-				return false;
-			}
-		}
-	}
-}
-
-function __checkConsecutiveDays(beginTimeArr){
-	if(beginTimeArr.length <= 0){
-		throw "InputError";
-	}
-	var day = beginTimeArr[i].day();
-	for(var i = 1; i < beginTimeArr.length; i++){
-		var next = beginTimeArr[i].day();
-		if((day+1) % 7 == next){
-			day = next;
-		}
-		else{
-			throw "InputError: days are not consecutive";
-			return false;
-		}
-	}
-	return true;
-}
-
-function calcDayOffBonus(hourSalary){
-	return hourSalary * normalDayTime.hours();
-}
-
-function calcExtendedTimeBonus(extendedTime, distributedExtendedTime, hourSalary, firstAdd=(4.0/3.0), secondAdd=(5.0/3.0), moreAdd=(5.0/3.0)){
-	
-	var now = 0;
-	var bonus = 0;
-	if(distributedExtendedTime == 0){
-		var remain = extendedTime;
-
-		//first 2 hours
-		now = (remain >= 2) ? 2 : remain; 
-		bonus += now * firstAdd * hourSalary; 
-		remain = (remain >= 2) ? remain -2 : 0;
+	/*if sum of normal working time for is longer than normal working time per week, distribute those
+		normal working time to extended working time 
+	*/
+	if(ntwWeek > normalWeekTime){
+		var extended = __calcExtendedWeekWorkingTime(ntwWeek);
+		mapping = __getDayMapping(startTimeArr);
+		var index = mapping[restDay];
+		if(extended <= nwtNormalArr[index]){
+			ewtRestArr[index] = extended;
+			ewtRestMoreArr[index] = ewtNormalArr[index];
 			
-		//later 2 hours
-		now = (remain >= 2) ? 2 : remain;
-		bonus += now * secondAdd * hourSalary; 
-		remain = (remain >= 2) ? remain -2 : 0;
-
-		//more 
-		bonus += remain * moreAdd * hourSalary; 
-		return bonus;
+			ewtNormalArr[index] = moment.duration(0);
+			nwtNormalArr[index] = nwtNormalArr[index] - extended;
+		}
+		else{
+			//should be impossible
+			throw "Bug";
+		}
 	}
-	else{
-		var remain = distributedExtendedTime;
-		
-		//first 2 hours
-		now = (remain >= 2) ? 2 : remain; 
-		bonus += now * (firstAdd-1) * hourSalary; 
-		remain = (remain >= 2) ? remain -2 : 0;
-			
-		//later 2 hours
-		now = (remain >= 2) ? 2 : remain;
-		bonus += now * (secondAdd-1) * hourSalary; 
-		remain = (remain >= 2) ? remain -2 : 0;
 
-		//more
-		bonus += remain * (moreAdd-1) * hourSalary;
-
-		bonus += extendedTime * moreAdd * hourSalary; 
-	}		
+	return [nwtNormalArr, nwtRoutineOffArr, nwtHolidayArr, ewtNormalArr, ewtDayOffArr, ewtRestArr, ewtRestMoreArr];
 }
 
-//FIXME
+function __calcExtendedWeekWorkingTime(workingTime){
+	return (workingTime > normalWeekTime) ? moment.duration(workingTime - normalWeekTime) : moment.duration(0) ; 
+}
+
+function __checkRoutineDayOff(date, routineDayOffDay){
+	if(date === null) { return false; }
+	return date.day() == routineDayOffDay;
+}
+
+function __getDayMapping(dateArr){
+	var nDays = dateArr.length;
+	var mapping = new Array();
+	for(var i=0; i < nDays; i++){
+		if(dateArr[i] !== null){
+			var day = dateArr[i].day();
+			mapping[day] = i;	
+		}
+	}
+	return mapping;
+}
+
+//TODO
 function isNationalHoliday(date){
 	return false;
 }
+exports.isNationalHoliday = isNationalHoliday;
 
-//	routineDayOffDay defaults to Sunday
-function calcBonus_OneWeek(startTimeArr, endTimeArr, breakDurationArr, hourSalary, routineDayOffDay=0){
-	var nDays = 7;
-	[extendedTimeArr, distributedExtendedTimeArr] = calcExtendedTime_OneWeek(startTimeArr, endTimeArr, breakDurationArr);
 
-	var bonus = 0;
-	for(var i = 0; i < nDays; i++){
-		var day = startTimeArr[i].day();
-		var t1 = extendedTimeArr[i];
-		var t2 = distributedExtendedTimeArr[i];
-		bonus += calcExtendedTimeBonus(t1, t2, hourSalary);
-		if(t1 > 0 || t2 > 0){
-			bonus += calcDayOffBonus(hourSalary);
+function calcOvertimeSalary(nwtRoutineOff, nwtHoliday, ewtNormal, ewtDayOff, 
+	ewtRest, ewtRestMore, hourSalary, salaryBonus=[4.0/3.0, 5.0/3.0, 5.0/3.0]){
+	var salary = 0.0;
+	var h = 0; 
+	if(nwtRoutineOff != 0 || nwtHoliday != 0){
+		salary += normalDayTime.hours() * hourSalary;
+	}
+
+	if(ewtNormal != 0 || ewtDayOff != 0){ //one of them should be 0
+		h = ewtNormal.hours();
+	}
+	else if(ewtDayOff != 0){
+		h = ewtDayOff.hours();
+	}
+	else if(ewtRest != 0 || ewtRestMore != 0){
+		h = ewtRest.hours() + ewtRestMore.hours();
+	}
+
+	//calculate overtime salary 
+	var base = 2;
+	for(var i = 0; i < salaryBonus.length - 1; i++){
+		if(h > base){
+			salary += base * hourSalary * salaryBonus[i];
+			h -= base; 
+		}
+		else{
+			salary += h * hourSalary * salaryBonus[i];
+			h = 0;
+			break;
 		}
 	}
-	return bonus;
+	if(h > 0){
+		salary += h * hourSalary * salaryBonus[salaryBonus.length - 1];
+	}
+	
+	//substract the money already given
+	if(ewtRest != 0){
+		salary -= ewtRest.hours() * hourSalary; 
+	}
+	return salary;
 }
+
+function calcOvertimeSalary_OneWeek(startTimeArr, endTimeArr, breakDurationArr, hourSalary, 
+	routineDayOffDay=0, restDay=6, salaryBonus=[4.0/3.0, 5.0/3.0, 5.0/3.0]){
+	[nwtNormalArr, nwtRoutineOffArr, nwtHolidayArr, ewtNormalArr, ewtDayOffArr, 
+		ewtRestArr, ewtRestMoreArr] = divideWorkingTime_OneWeek(startTimeArr, endTimeArr, 
+			breakDurationArr, routineDayOffDay, restDay);
+
+	const nDays = 7;		
+	var overtimeSalary = 0.0;
+	for(var i = 0; i < nDays; i++){
+		overtimeSalary += calcOvertimeSalary(nwtRoutineOffArr[i], nwtHolidayArr[i], 
+			ewtNormalArr[i], ewtDayOffArr[i], ewtRestArr[i], ewtRestMoreArr[i], hourSalary, salaryBonus);
+	}
+	return overtimeSalary;
+}
+exports.calcOvertimeSalary_OneWeek = calcOvertimeSalary_OneWeek;
+
+
+})(e, m);
+})();
 

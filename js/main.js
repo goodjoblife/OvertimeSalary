@@ -198,7 +198,9 @@ window.workingTimesForm.init(function () {
     function updateWokingTime(workingTimes) {
         $.each(workingTimes, function(i, workingTime) {
             var weekDay = i + 1;
-            $("#weekday-" + weekDay).find(".workingTime").text(calcWorkingTime(workingTime.startTime, workingTime.endTime, workingTime.freeTime).asHours());
+            $("#weekday-" + weekDay).find(".workingTime").text(
+                calc.calcWorkingTime(workingTime.startTime, workingTime.endTime, workingTime.freeTime).asHours()
+            );
         });
     }
 });
