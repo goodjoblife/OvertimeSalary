@@ -128,6 +128,20 @@ Working.prototype.divideWorkingTime = function() {
 
 };
 
+Working.prototype.calcIsNationalHoliday = function() {
+    this.isNationalHoliday = isNationalHoliday(this.startTime);
+    return this;
+}
+
+Working.prototype.calcNormalWorkingTimeDurationOnNationalHoliday = function() {
+    if (this.calcIsNationalHoliday().isNationalHoliday) {
+        this.normalWorkingTimeDurationOnNationalHoliday = __calcNormalWorkingTime(this.workingTime);
+    } else {
+        this.normalWorkingTimeDurationOnNationalHoliday = moment.duration(0);
+    }
+    return this;
+}
+
 function __calcNormalWorkingTime(workingTime){
 	return (workingTime > normalDayTime) ? moment.duration(normalDayTime) : workingTime ; 
 }
