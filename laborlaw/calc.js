@@ -21,10 +21,18 @@ exports.Working = Working;
 Working.prototype = {
     clone: function() {
         var w = new Working();
-        w.startTime = this.startTime.clone();
-        w.endTime   = this.endTime.clone();
-        w.breakDuration = moment.duration(this.breakDuration);
-        w.isBreak = this.isBreak;
+        for (var key in this) {
+            if (this.hasOwnProperty(key)) {
+                if (this[key] instanceof moment) {
+                    w[key] = this[key].clone();
+                } else if (moment.isDuration(this[key])) {
+                    w[key] = moment.duration(this[key]);
+                } else {
+                    // FIXME
+                    w[key] = this[key];
+                }
+            }
+        }
         return w;
     }
 };
