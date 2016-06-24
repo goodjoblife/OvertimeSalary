@@ -252,7 +252,7 @@ window.workingTimesForm.init(function () {
             } else {
                 startTimeArr.push(working.startTime);
                 endTimeArr.push(working.endTime);
-                breakDurationArr.push(working.freeTime);
+                breakDurationArr.push(working.breakDuration);
             }
         });
 
