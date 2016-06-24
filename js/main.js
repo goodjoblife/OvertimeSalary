@@ -258,7 +258,8 @@ window.workingTimesForm.init(function () {
 
         // main part
         var overtimeSalary = calc.calcOvertimeSalary_OneWeek(startTimeArr, endTimeArr, breakDurationArr, hourSalary);
-        console.log(overtimeSalary);
+
+        $("#overtime-salary").text(overtimeSalary);
     }
 
     $("#weekday-1").click();
