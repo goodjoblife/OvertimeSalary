@@ -170,7 +170,7 @@ function divideWorkingTime_OneWeek(startTimeArr, endTimeArr, breakDurationArr, r
 	var ewtDayOffArr = new Array();
 	var ewtRestArr = new Array();
 	var ewtRestMoreArr = new Array();
-	var ntwWeek = moment.duration(0);
+	var nwtWeek = moment.duration(0);
 	
 	//get normal working time for each day
 	for(var i = 0; i < nDays; i++){
@@ -180,23 +180,23 @@ function divideWorkingTime_OneWeek(startTimeArr, endTimeArr, breakDurationArr, r
 
 		ewtRestArr[i] = moment.duration(0);
 		ewtRestMoreArr[i] = moment.duration(0);
-		ntwWeek.add(nwtNormalArr[i]);		
+		nwtWeek.add(nwtNormalArr[i]);		
 	}
 	/*if sum of normal working time for is longer than normal working time per week, distribute those
 		normal working time to extended working time 
 	*/
-	if(ntwWeek > normalWeekTime){
-		var extended = __calcExtendedWeekWorkingTime(ntwWeek);
+	if(nwtWeek > normalWeekTime){ //nwtWeek is the sum of normal working time for each day, must less than 48hrs
+		var extended = __calcExtendedWeekWorkingTime(nwtWeek); //extended is the part which is over 40 hrs
 		mapping = __getDayMapping(startTimeArr);
 		var index = mapping[restDay];
-		if(extended <= nwtNormalArr[index]){
+		if(extended <= nwtNormalArr[index]){  //the range of extended is [0, 8hr], and all of them should be on rest day
 			ewtRestArr[index] = extended;
 			ewtRestMoreArr[index] = ewtNormalArr[index];
 			
 			ewtNormalArr[index] = moment.duration(0);
 			nwtNormalArr[index].subtract(extended);
 		}
-		else{
+		else{  
 			//should be impossible
 			throw "Bug";
 		}
