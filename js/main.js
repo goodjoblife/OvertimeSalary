@@ -8,6 +8,7 @@
     }
 
     var workingTimes = exports.workingTimes = [];
+    var monthSalary = exports.monthSalary = 0;
     for (var i = 0; i < 7; i++) {
         workingTimes.push(new workingTime);
     }
@@ -103,7 +104,7 @@
             $('#test-modal').modal('hide');
 
             exports.emit("WorkingTimeChanged", weekDay);
-            exports.emit("WorkingTimesChanged", workingTimes);
+            exports.emit("WorkingTimesChanged");
         });
 
         $('#test-modal').on('show.bs.modal', function (event) {
@@ -177,30 +178,62 @@
         initTable();
         initModal();
 
+        $("#month-salary").change(function () {
+            monthSalary = parseInt($("#month-salary").val());
+
+            exports.emit("MonthSalaryChanged");
+        });
+        monthSalary = parseInt($("#month-salary").val());
+
         callback && callback();
     };
 
 })(window.workingTimesForm = window.workingTimesForm || {}, jQuery, moment);
 
-workingTimesForm.on("WorkingTimeChanged", function(weekDay) {
-    console.log("onWorkingTimeChanged: " + weekDay);
-});
-
 window.workingTimesForm.init(function () {
     $("#weekday-1").click();
 
-    workingTimesForm.on("WorkingTimesChanged", function(workingTimes) {
-        updateWokingTime(workingTimes);
+    workingTimesForm.on("WorkingTimesChanged", function() {
+        update();
     });
 
-    updateWokingTime(window.workingTimesForm.workingTimes);
+    workingTimesForm.on("MonthSalaryChanged", function() {
+        update();
+    });
 
-    function updateWokingTime(workingTimes) {
+    update();
+
+    function update() {
+        var workingTimes = window.workingTimesForm.workingTimes;
+        var monthSalary = window.workingTimesForm.monthSalary;
+        var hourSalary = monthSalary / 240;
+
         $.each(workingTimes, function(i, workingTime) {
             var weekDay = i + 1;
             $("#weekday-" + weekDay).find(".workingTime").text(
                 calc.calcWorkingTime(workingTime.startTime, workingTime.endTime, workingTime.freeTime).asHours()
             );
         });
+
+        /*
+         * Adapter for our calc lib
+         */
+        var startTimeArr = [], endTimeArr = [], breakDurationArr = [];
+
+        $.each(workingTimes, function(i, workingTime) {
+            if (workingTime.isBreak) {
+                startTimeArr.push(null);
+                endTimeArr.push(null);
+                breakDurationArr.push(null);
+            } else {
+                startTimeArr.push(workingTime.startTime);
+                endTimeArr.push(workingTime.endTime);
+                breakDurationArr.push(workingTime.freeTime);
+            }
+        });
+
+        // main part
+        var overtimeSalary = calc.calcOvertimeSalary_OneWeek(startTimeArr, endTimeArr, breakDurationArr, hourSalary);
+        console.log(overtimeSalary);
     }
 });
