@@ -1,17 +1,18 @@
-(function(exports, $, moment, checker) {
-    function workingTime() {
-        this.startTime = moment('08:00', 'HH:mm');
-        this.endTime = moment('17:00', 'HH:mm');
-        this.freeTime = moment.duration(1, "hours");
-        this.isBreak = false;
-        this.isRoutineDayOff = false;
-    }
-
+(function(exports, $, moment, calc) {
     var workingTimes = exports.workingTimes = [];
-    var monthSalary = exports.monthSalary = 0;
+    exports.monthSalary = 0;
+
     for (var i = 0; i < 7; i++) {
-        workingTimes.push(new workingTime);
+        work = new calc.Working();
+        work.startTime = moment().weekday(i - 7).hour(8).minute(0).second(0).millisecond(0);
+        work.endTime   = moment().weekday(i - 7).hour(17).minute(0).second(0).millisecond(0);
+        work.freeTime  = moment.duration(1, "hours");
+        work.isBreak   = false;
+        work.isRoutineDayOff = false;
+
+        workingTimes.push(work);
     }
+    workingTimes[0].isRoutineDayOff = true;
 
     var callbacks = {};
     exports.on = function(type, callback) {
@@ -125,7 +126,7 @@
             }
             $irdo.prop("checked", workingTime.isRoutineDayOff);
 
-            $("#myModalWeekDaySpan").html(["一", "二", "三", "四", "五", "六", "日"][weekDay]);
+            $("#myModalWeekDaySpan").html(["日", "一", "二", "三", "四", "五", "六"][weekDay]);
 
             changeResult();
         });
@@ -179,16 +180,16 @@
         initModal();
 
         $("#month-salary").change(function () {
-            monthSalary = parseInt($("#month-salary").val());
+            exports.monthSalary = parseInt($("#month-salary").val());
 
             exports.emit("MonthSalaryChanged");
         });
-        monthSalary = parseInt($("#month-salary").val());
+        exports.monthSalary = parseInt($("#month-salary").val());
 
         callback && callback();
     };
 
-})(window.workingTimesForm = window.workingTimesForm || {}, jQuery, moment);
+})(window.workingTimesForm = window.workingTimesForm || {}, jQuery, moment, window.calc);
 
 window.workingTimesForm.init(function () {
     $("#weekday-1").click();
