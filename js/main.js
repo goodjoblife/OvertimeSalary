@@ -1,16 +1,18 @@
-(function(exports, $, moment, checker) {
-    function workingTime() {
-        this.startTime = moment('08:00', 'HH:mm');
-        this.endTime = moment('17:00', 'HH:mm');
-        this.freeTime = moment.duration(1, "hours");
-        this.isBreak = false;
-        this.isRoutineDayOff = false;
-    }
-
+(function(exports, $, moment, calc) {
     var workingTimes = exports.workingTimes = [];
+    exports.monthSalary = 0;
+
     for (var i = 0; i < 7; i++) {
-        workingTimes.push(new workingTime);
+        work = new calc.Working();
+        work.startTime = moment().weekday(i - 7).hour(8).minute(0).second(0).millisecond(0);
+        work.endTime   = moment().weekday(i - 7).hour(17).minute(0).second(0).millisecond(0);
+        work.freeTime  = moment.duration(1, "hours");
+        work.isBreak   = false;
+        work.isRoutineDayOff = false;
+
+        workingTimes.push(work);
     }
+    workingTimes[0].isRoutineDayOff = true;
 
     var callbacks = {};
     exports.on = function(type, callback) {
@@ -103,7 +105,7 @@
             $('#test-modal').modal('hide');
 
             exports.emit("WorkingTimeChanged", weekDay);
-            exports.emit("WorkingTimesChanged", workingTimes);
+            exports.emit("WorkingTimesChanged");
         });
 
         $('#test-modal').on('show.bs.modal', function (event) {
@@ -124,7 +126,7 @@
             }
             $irdo.prop("checked", workingTime.isRoutineDayOff);
 
-            $("#myModalWeekDaySpan").html(["一", "二", "三", "四", "五", "六", "日"][weekDay]);
+            $("#myModalWeekDaySpan").html(["日", "一", "二", "三", "四", "五", "六"][weekDay]);
 
             changeResult();
         });
@@ -177,30 +179,62 @@
         initTable();
         initModal();
 
+        $("#month-salary").change(function () {
+            exports.monthSalary = parseInt($("#month-salary").val());
+
+            exports.emit("MonthSalaryChanged");
+        });
+        exports.monthSalary = parseInt($("#month-salary").val());
+
         callback && callback();
     };
 
-})(window.workingTimesForm = window.workingTimesForm || {}, jQuery, moment);
-
-workingTimesForm.on("WorkingTimeChanged", function(weekDay) {
-    console.log("onWorkingTimeChanged: " + weekDay);
-});
+})(window.workingTimesForm = window.workingTimesForm || {}, jQuery, moment, window.calc);
 
 window.workingTimesForm.init(function () {
     $("#weekday-1").click();
 
-    workingTimesForm.on("WorkingTimesChanged", function(workingTimes) {
-        updateWokingTime(workingTimes);
+    workingTimesForm.on("WorkingTimesChanged", function() {
+        update();
     });
 
-    updateWokingTime(window.workingTimesForm.workingTimes);
+    workingTimesForm.on("MonthSalaryChanged", function() {
+        update();
+    });
 
-    function updateWokingTime(workingTimes) {
+    update();
+
+    function update() {
+        var workingTimes = window.workingTimesForm.workingTimes;
+        var monthSalary = window.workingTimesForm.monthSalary;
+        var hourSalary = monthSalary / 240;
+
         $.each(workingTimes, function(i, workingTime) {
             var weekDay = i + 1;
             $("#weekday-" + weekDay).find(".workingTime").text(
                 calc.calcWorkingTime(workingTime.startTime, workingTime.endTime, workingTime.freeTime).asHours()
             );
         });
+
+        /*
+         * Adapter for our calc lib
+         */
+        var startTimeArr = [], endTimeArr = [], breakDurationArr = [];
+
+        $.each(workingTimes, function(i, workingTime) {
+            if (workingTime.isBreak) {
+                startTimeArr.push(null);
+                endTimeArr.push(null);
+                breakDurationArr.push(null);
+            } else {
+                startTimeArr.push(workingTime.startTime);
+                endTimeArr.push(workingTime.endTime);
+                breakDurationArr.push(workingTime.freeTime);
+            }
+        });
+
+        // main part
+        var overtimeSalary = calc.calcOvertimeSalary_OneWeek(startTimeArr, endTimeArr, breakDurationArr, hourSalary);
+        console.log(overtimeSalary);
     }
 });
