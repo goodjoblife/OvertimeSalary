@@ -18,15 +18,24 @@
                         <h4 class="modal-title" id="myModalLabel">星期<span id="myModalWeekDaySpan"></span> 的工作時間</h4>
                     </div>
                     <div class="modal-body">
-                        <label for="wtm-startTime">上班時間</label>
-                        <input class="form-control" type="time" value="09:00:00" id="wtm-startTime">
-                        <label for="wtm-endTime">下班時間</label>
-                        <input class="form-control" type="time" value="18:00:00" id="wtm-endTime">
-                        <label for="wtm-freeTime">休息時數</label>
-                        <input class="form-control" type="number" value="1" min="0" max="480" id="wtm-freeTime"> 分
+                        <div class="form-group">
+                            <label for="wtm-startTime">上班時間</label>
+                            <input class="form-control" type="time" id="wtm-startTime">
+                        </div>
+                        <div class="form-group">
+                            <label for="wtm-endTime">下班時間</label>
+                            <input class="form-control" type="time" id="wtm-endTime">
+                        </div>
+                        <div class="form-group">
+                            <label for="wtm-freeTime">休息時數</label>
+                            <div class="input-group">
+                                <input class="form-control" type="number" min="0" max="480" id="wtm-breakDuration">
+                                <div class="input-group-addon">分</div>
+                            </div>
+                        </div>
                         <div class="checkbox">
                             <label>
-                                <input type="checkbox" id="wtm-isBreak"> 今天休假
+                                <input type="checkbox" id="wtm-isBreak"> 今天不上班
                             </label>
                         </div>
                         <div class="checkbox">
@@ -46,62 +55,13 @@
             </div>
         </div>
     
-        <div>
+        <div id="workingCollectionTable">
             <div class="row oneday">
                 <div class="col-md-12"></div>
                 <div class="col-md-12">上班</div>
                 <div class="col-md-12">下班</div>
                 <div class="col-md-12">休息 (分)</div>
                 <div class="col-md-12">工作時間</div>
-            </div>
-            <div class="row oneday" id="weekday-1">
-                <div class="col-md-12 week">一</div>
-                <div class="col-md-12 start"></div>
-                <div class="col-md-12 end"></div>
-                <div class="col-md-12 break"></div>
-                <div class="col-md-12 workingTime"></div>
-            </div>
-            <div class="row oneday" id="weekday-2">
-                <div class="col-md-12 week">二</div>
-                <div class="col-md-12 start"></div>
-                <div class="col-md-12 end"></div>
-                <div class="col-md-12 break"></div>
-                <div class="col-md-12 workingTime"></div>
-            </div>
-            <div class="row oneday" id="weekday-3">
-                <div class="col-md-12 week">三</div>
-                <div class="col-md-12 start"></div>
-                <div class="col-md-12 end"></div>
-                <div class="col-md-12 break"></div>
-                <div class="col-md-12 workingTime"></div>
-            </div>
-            <div class="row oneday" id="weekday-4">
-                <div class="col-md-12 week">四</div>
-                <div class="col-md-12 start"></div>
-                <div class="col-md-12 end"></div>
-                <div class="col-md-12 break"></div>
-                <div class="col-md-12 workingTime"></div>
-            </div>
-            <div class="row oneday" id="weekday-5">
-                <div class="col-md-12 week">五</div>
-                <div class="col-md-12 start"></div>
-                <div class="col-md-12 end"></div>
-                <div class="col-md-12 break"></div>
-                <div class="col-md-12 workingTime"></div>
-            </div>
-            <div class="row oneday" id="weekday-6">
-                <div class="col-md-12 week">六</div>
-                <div class="col-md-12 start"></div>
-                <div class="col-md-12 end"></div>
-                <div class="col-md-12 break"></div>
-                <div class="col-md-12 workingTime"></div>
-            </div>
-            <div class="row oneday" id="weekday-7">
-                <div class="col-md-12 week">日</div>
-                <div class="col-md-12 start"></div>
-                <div class="col-md-12 end"></div>
-                <div class="col-md-12 break"></div>
-                <div class="col-md-12 workingTime"></div>
             </div>
         </div>
         <div class="row">
