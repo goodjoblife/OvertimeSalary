@@ -1,8 +1,12 @@
 (function(exports, $, moment, calc) {
+    /* 公開儲存的資料
+     * 1. 工作陣列
+     * 2. 月薪
+     */
     var workingsArr = exports.workingsArr = [];
-
     exports.monthSalary = 0;
 
+    // 初始化一個星期的工作陣列
     function initData() {
         for (var i = 0; i < 7; i++) {
             working = new calc.Working();
@@ -18,6 +22,7 @@
         workingsArr[0].isBreak = true;
     }
 
+    // 事件處理
     (function() {
         var callbacks = {};
         exports.on = function(type, callback) {
@@ -51,6 +56,7 @@
         var $rt = $('#wtm-releaseTime');
         var $tt = $('#wtm-totalTime');
 
+        // modal 開啟時的暫存 id，代表編輯中的陣列代號
         var pointer = null;
 
         $st.change(function () {
@@ -140,6 +146,8 @@
     var $wct = $("#workingCollectionTable");
     function initTable() {
         workingsArr.forEach(function (working, i) {
+            // insert html into #workingCollectionTable
+            // bind click event to open modal
             var html = 
                 "<div class=\"row oneday\" id=\"weekday-" + i + "\">" + 
                 "<div class=\"col-md-12 week\">" +  ["日", "一", "二", "三", "四", "五", "六"][i] + "</div>" + 
@@ -154,6 +162,7 @@
                     $('#test-modal').modal('show', i);
                 });
             
+            // first time initial the html value
             drawWorkingTime(i);
         });
 
@@ -185,20 +194,22 @@
         }
     }
 
-    /*
-     * A place to prepare our checker
-     */
-    var init = exports.init = function(callback) {
-        initData();
-        initTable();
-        initModal();
-
+    function initMonthSalary() {
         $("#month-salary").change(function () {
             exports.monthSalary = parseInt($("#month-salary").val());
 
             exports.emit("MonthSalaryChanged");
         });
         exports.monthSalary = parseInt($("#month-salary").val());
+    }
+
+    // expose a callback, so we can prepare more
+    var init = exports.init = function(callback) {
+        initData();
+        initTable();
+        initModal();
+
+        initMonthSalary();
 
         callback && callback();
     };
@@ -216,6 +227,7 @@ window.workingTimesForm.init(function () {
 
     update();
 
+    // our salary caculation goes here
     function update() {
         var workingsArr = window.workingTimesForm.workingsArr;
         var monthSalary = window.workingTimesForm.monthSalary;
