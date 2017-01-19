@@ -114,7 +114,7 @@ describe('calcOvertimeSalary_OneWeek', function() {
         ], breakDurationArr = [
             moment.duration(1, "hour"), moment.duration(1, "hour"), moment.duration(1, "hour"), 
             moment.duration(1, "hour"), moment.duration(1, "hour"),
-            null, moment(0, "hour")
+            null, moment.duration(0, "hour")
         ];
 
         assert.equal(
