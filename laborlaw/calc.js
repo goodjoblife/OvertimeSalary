@@ -39,6 +39,7 @@ Working.prototype = {
 
 function WorkingCollection() {
     this.data = [];
+    this.hourSalary = 0;
 }
 exports.WorkingCollection = WorkingCollection;
 
@@ -126,21 +127,53 @@ function divideWorkingTime(startTime, endTime, breakDuration, isRoutineDayOff){
 	return [nwtNormal, nwtRoutineOff, nwtHoliday, ewtNormal, ewtDayOff];
 }
 
+/*
+ * Based on this.isRoutineDayOff, this.workingTimeDuration;
+ */
 Working.prototype.divideWorkingTime = function() {
+    // FIXME
+    this.isRoutineDayOff = this.isRoutineDayOff || false;
 
+    this.calcWorkingTimeDuration()
+        .calcIsNationalHoliday();
+
+    this._workingTime = {
+        normal: {
+            normalDay: moment.duration(0),
+            routineDayOff: moment.duration(0),
+            nationalHoliday: moment.duration(0),
+        },
+        extended: {
+            normalDay: moment.duration(0),
+            dayOff: moment.duration(0),
+        },
+    };
+
+    var nwt = this._workingTime.normal;
+    var ewt = this._workingTime.extended;
+
+    if (this.isRoutineDayOff) {
+        nwt.routineDayOff = __calcNormalWorkingTime(this.workingTimeDuration);
+        ewt.dayOff = __calcExtendedWeekWorkingTime(this.workingTimeDuration);
+
+        return this;
+    }
+
+    if (this.isNationalHoliday) {
+        nwt.nationalHoliday = __calcNormalWorkingTime(this.workingTimeDuration);
+        ewt.dayOff = __calcExtendedWorkingTime(this.workingTimeDuration);
+
+        return this;
+	}
+
+    nwt.normalDay = __calcNormalWorkingTime(this.workingTimeDuration);
+    ewt.normalDay = __calcExtendedWorkingTime(this.workingTimeDuration);
+
+    return this;
 };
 
 Working.prototype.calcIsNationalHoliday = function() {
     this.isNationalHoliday = isNationalHoliday(this.startTime);
-    return this;
-}
-
-Working.prototype.calcNormalWorkingTimeDurationOnNationalHoliday = function() {
-    if (this.calcIsNationalHoliday().isNationalHoliday) {
-        this.normalWorkingTimeDurationOnNationalHoliday = __calcNormalWorkingTime(this.workingTime);
-    } else {
-        this.normalWorkingTimeDurationOnNationalHoliday = moment.duration(0);
-    }
     return this;
 }
 
@@ -296,6 +329,14 @@ function calcOvertimeSalary_OneWeek(startTimeArr, endTimeArr, breakDurationArr, 
 	return overtimeSalary;
 }
 exports.calcOvertimeSalary_OneWeek = calcOvertimeSalary_OneWeek;
+
+WorkingCollection.prototype.divideWorkingTime = function() {
+    return this;
+}
+
+WorkingCollection.prototype.calcOvertimeSalary = function() {
+    return this;
+};
 
 
 })(e, m);
